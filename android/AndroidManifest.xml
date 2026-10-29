@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="tech.taill.astraremote"
+    android:versionCode="9"
+    android:versionName="0.7.0">
+
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- notes Astra sends to the phone (Android 13+ asks the owner first) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 14+: a job that waits for a network (the notes check) needs this, or scheduling it throws -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 8–9 only: saving a file from the PC into Downloads -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- to tell whether Tailscale is on the phone and open it (away from home the PC is reached through it) -->
+    <queries>
+        <package android:name="com.tailscale.ipn" />
+        <!-- speaking to Astra and hearing her reply: the phone's recogniser and text-to-speech engine -->
+        <intent><action android:name="android.speech.action.RECOGNIZE_SPEECH" /></intent>
+        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+    </queries>
+
+    <!-- no cloud backup: the device key must never leave the phone -->
+    <application
+        android:label="Phone Remote"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/no_backup"
+        android:usesCleartextTraffic="false"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- "Share" → Phone Remote: files go to the PC's shared folder, text and links are offered to send -->
+            <intent-filter android:label="На ПК">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+            <intent-filter android:label="На ПК">
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- the home-screen widget: the first four buttons of the remote -->
+        <receiver android:name=".ButtonsWidget" android:exported="false" android:label="Phone Remote: кнопки">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_buttons" />
+        </receiver>
+
+        <!-- quick settings tiles -->
+        <service android:name=".MediaTile" android:exported="true" android:label="Пауза на ПК"
+            android:icon="@drawable/ic_tile_play" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+        <service android:name=".LockTile" android:exported="true" android:label="Заблокировать ПК"
+            android:icon="@drawable/ic_tile_lock" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+
+        <!-- checks for notes from Astra while the app is closed (Android runs it about every 15 minutes) -->
+        <service android:name=".NotesJob" android:exported="false" android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <activity
+            android:name=".ScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
+    </application>
+</manifest>

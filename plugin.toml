@@ -1,0 +1,149 @@
+[plugin]
+id = "phone-remote"
+name = "Phone Remote"
+version = "0.7.1"
+description = "Control this PC and talk to Astra from an Android app: a remote with your Astra commands, music and volume, files and clipboard, screenshots, your avatar with voice, and sleep or lock. Works from anywhere through your own free Cloudflare relay."
+author = "Taill"
+license = "MIT"
+icon = "icon.svg"
+call_timeout_secs = 60
+
+[entry]
+command = "node"
+args = ["dist/index.js"]
+runtimes = ["node"]
+
+[capabilities]
+tools = true
+triggers = true
+ui_contributions = true
+# SendChatMessage is filed under `client`; the capability is what makes the plugin a chat front-end
+client = true
+
+[platform]
+os = ["windows"]
+arch = []
+
+[config]
+schema = """
+{
+  "type": "object",
+  "properties": {
+    "port": {
+      "type": "integer",
+      "default": 8765,
+      "title": "Порт",
+      "description": "На этом порту плагин ждёт приложение в домашней сети (HTTPS). Не пробрасывай его в интернет: вне дома работает ретранслятор."
+    },
+    "relay_url": {
+      "type": "string",
+      "default": "",
+      "title": "Ретранслятор (вне дома)",
+      "description": "Адрес своего ретранслятора на Cloudflare (папка relay в исходниках), например https://astra-remote-relay.имя.workers.dev. Тогда телефон достаёт до ПК откуда угодно, без Tailscale и открытых портов. Ретранслятор только передаёт байты: связь та же, что дома, — HTTPS с сертификатом ПК. Пусто — только домашняя сеть и Tailscale."
+    },
+    "keep_awake": {
+      "type": "boolean",
+      "default": false,
+      "title": "Не уходить в сон, пока подключён телефон",
+      "description": "Чтобы до ПК можно было достучаться вне дома (через ретранслятор или Tailscale). Экран гаснет как обычно; кнопка «Сон» с телефона по-прежнему усыпляет ПК."
+    },
+    "allow_chat": {
+      "type": "boolean",
+      "default": true,
+      "title": "Чат с Astra с телефона",
+      "description": "Сообщения с телефона уходят в Astra, ответ возвращается на телефон."
+    },
+    "allow_files": {
+      "type": "boolean",
+      "default": true,
+      "title": "Обмен файлами",
+      "description": "Телефон видит только общую папку: присылает файлы в «С телефона» и забирает любые файлы из неё. Astra может положить туда файл для телефона."
+    },
+    "shared_folder": {
+      "type": "string",
+      "default": "",
+      "title": "Общая папка",
+      "description": "Пусто — папка «Astra Remote» в папке пользователя."
+    },
+    "max_upload_mb": {
+      "type": "integer",
+      "default": 2048,
+      "title": "Наибольший файл с телефона, МБ"
+    },
+    "allow_clipboard": {
+      "type": "boolean",
+      "default": true,
+      "title": "Общий буфер обмена",
+      "description": "Текст из буфера телефона — на ПК и обратно, только по кнопке в приложении."
+    },
+    "allow_open_url": {
+      "type": "boolean",
+      "default": true,
+      "title": "Открывать ссылки с телефона",
+      "description": "«Поделиться» → Phone Remote → ссылка открывается в браузере на ПК. Только http и https."
+    },
+    "allow_input": {
+      "type": "boolean",
+      "default": true,
+      "title": "Тачпад и клавиатура",
+      "description": "Телефон водит мышью и печатает на ПК. Окна, запущенные от администратора, Windows с телефона не пускает."
+    },
+    "allow_launch": {
+      "type": "boolean",
+      "default": true,
+      "title": "Запуск программ и игр",
+      "description": "Телефон видит ярлыки из меню «Пуск» и с рабочего стола и игры Steam и может их запустить. Ничего другого он запустить не может."
+    },
+    "voice_to_phone": {
+      "type": "boolean",
+      "default": true,
+      "title": "Голос Astra на телефоне",
+      "description": "Когда в приложении включена озвучка, Astra проговаривает ответ своим голосом, и он идёт на телефон. Нужна Windows 10 2004 или новее; иначе ответ читает голос телефона."
+    },
+    "voice_quiet_pc": {
+      "type": "boolean",
+      "default": true,
+      "title": "Тихо на ПК, пока голос идёт на телефон",
+      "description": "На время ответа громкость Astra на ПК — 6%, её почти не слышно; на телефон голос идёт в полную силу. Совсем выключить звук на ПК нельзя: тогда тише стал бы и голос на телефоне."
+    },
+    "allow_screenshot": {
+      "type": "boolean",
+      "default": true,
+      "title": "Снимок экрана",
+      "description": "Подключённый телефон может получить снимок экрана ПК. Снимок уходит только на телефон и нигде не сохраняется."
+    },
+    "allow_power": {
+      "type": "boolean",
+      "default": true,
+      "title": "Блокировка, сон, выключение монитора"
+    },
+    "allow_shutdown": {
+      "type": "boolean",
+      "default": false,
+      "title": "Выключение и перезагрузка",
+      "description": "ПК выключается через минуту после команды; отменить можно с телефона или командой shutdown /a."
+    },
+    "confirm_shutdown": {
+      "type": "boolean",
+      "default": true,
+      "title": "Подтверждать выключение на ПК",
+      "description": "На ПК появляется окно «Разрешить?»; без ответа за минуту — отказ."
+    },
+    "key_days": {
+      "type": "integer",
+      "default": 90,
+      "title": "Срок ключа телефона, дней",
+      "description": "Потом телефон подключается заново по QR-коду. 0 — бессрочно."
+    }
+  }
+}
+"""
+
+[bundle]
+schema = "astra.bundle/2"
+target = "noarch"
+
+[permissions]
+client = { reason = "The phone app is a chat with Astra: what you type or say on the phone goes to Astra as if you typed it here." }
+send_chat_message = { reason = "Sends your messages from the phone to Astra and streams her reply back to the phone." }
+fire_trigger = { reason = "The buttons on the phone run the Astra commands you hang on the \"Phone Remote: button N\" triggers." }

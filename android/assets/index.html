@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phone Remote</title>
+<style>
+/* Astra's own look: its dark theme, the strawberry accent, Nunito for text and JetBrains Mono for titles */
+@import url(fonts/fonts.css);
+:root{--bg:#17181b;--card:#212226;--raised:#2c2d32;--raised-hover:#35363c;--line:rgba(255,255,255,.08);--line-strong:rgba(255,255,255,.15);
+  --text:#ececef;--muted:rgba(236,236,239,.66);--faint:rgba(236,236,239,.45);
+  --accent:#f38ba8;--accent-soft:rgba(243,139,168,.16);--on-accent:#1d1b26;
+  --bad:#f2846f;--bad-soft:rgba(242,132,111,.15);--ok:#a6cf8a;--ok-soft:rgba(166,207,138,.15);--warn:#f1c95b;
+  --mono:'JetBrains Mono',ui-monospace,monospace;--sans:Nunito,system-ui,Roboto,sans-serif;
+  --r-card:22px;--r-ctl:14px;--r-pill:999px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;color:var(--text);font:15px/1.45 var(--sans)}
+/* the faint doodles of Astra's background */
+body{background-color:var(--bg);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' fill='none' stroke='%23ffffff' stroke-opacity='.045' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M30 44c-6-8-18-2-12 8l12 12 12-12c6-10-6-16-12-8z'/%3E%3Cpath d='M150 30l4 10 10 4-10 4-4 10-4-10-10-4 10-4z'/%3E%3Cpath d='M170 150a10 10 0 1 1-10-10 6 6 0 1 1-6 6'/%3E%3Cpath d='M40 160l10 10M50 160l-10 10M62 160l10 10M72 160l-10 10'/%3E%3Cpath d='M110 100q8-10 16 0t16 0'/%3E%3Cpath d='M96 196v-14M96 202v1'/%3E%3C/svg%3E")}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+.app{display:flex;flex-direction:column;height:100%;max-width:640px;margin:0 auto}
+header{display:flex;align-items:center;gap:10px;padding:14px 18px 10px}
+header h1{font:700 17px/1.2 var(--mono);margin:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:none}
+.dot.on{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.dot.off{background:var(--bad);box-shadow:0 0 0 4px var(--bad-soft)}
+.via{font:600 11px/1 var(--mono);color:var(--muted);background:var(--raised);border-radius:var(--r-pill);padding:5px 9px}
+main{flex:1;overflow-y:auto;padding:4px 14px 16px}
+/* the bottom bar: Astra's pill-shaped navigation */
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:6px 10px 10px;padding:5px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:0 8px 24px #0006}
+nav button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;font:600 11px/1 var(--mono);color:var(--muted);border-radius:16px;transition:background .15s,color .15s}
+nav button svg{width:22px;height:22px}
+nav button.on{color:var(--text);background:var(--raised)}
+nav button.on svg{color:var(--accent)}
+nav .badge{position:absolute;top:4px;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--accent);color:var(--on-accent);font:700 11px/17px var(--sans);padding:0 4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:16px;margin-bottom:12px}
+.card h2{font:700 12px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px}
+.row{display:flex;align-items:center;gap:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--raised);border-radius:var(--r-ctl);padding:10px 6px;text-align:center}
+.stat b{display:block;font:700 19px/1.25 var(--mono);font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.np{min-height:42px;margin-bottom:10px}
+.np .t{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.np .a{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.transport{display:flex;justify-content:center;gap:18px}
+.round{width:54px;height:54px;border-radius:50%;background:var(--raised);display:grid;place-items:center}
+.round:active{background:var(--raised-hover)}
+.round.big{width:64px;height:64px;background:var(--accent);color:var(--on-accent)}
+.round svg{width:24px;height:24px}
+.vol{display:flex;align-items:center;gap:12px;margin-top:14px}
+.vol input{flex:1;accent-color:var(--accent);height:28px}
+.vol .n{width:36px;text-align:right;font:600 13px var(--mono);color:var(--muted)}
+.icon-btn{width:40px;height:40px;border-radius:var(--r-ctl);background:var(--raised);display:grid;place-items:center;flex:none}
+.icon-btn svg{width:21px;height:21px}
+.icon-btn.on{background:var(--accent-soft);color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:14px 6px;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;font-size:13.5px;font-weight:600;transition:transform .08s,background .15s}
+.tile:active{transform:scale(.96);background:var(--accent-soft);border-color:var(--accent)}
+.tile .e{font-size:24px;line-height:1}
+.tile.danger{color:var(--bad)}
+.tile svg{width:26px;height:26px}
+.hint{color:var(--muted);font-size:13px}
+.chat{display:flex;flex-direction:column;height:100%}
+.msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0 10px}
+.msg{max-width:86%;padding:10px 14px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word}
+.msg.me{align-self:flex-end;background:var(--accent-soft);border:1px solid rgba(243,139,168,.3);border-bottom-right-radius:6px}
+.msg.ai{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px}
+.msg.err{align-self:center;background:var(--bad-soft);color:var(--bad);font-size:13px}
+.msg.typing::after{content:"▍";animation:blink 1s steps(2) infinite;color:var(--accent)}
+@keyframes blink{50%{opacity:0}}
+.compose{display:flex;gap:8px;align-items:flex-end;padding-top:8px}
+.compose textarea{flex:1;resize:none;background:var(--card);border:1px solid var(--line-strong);border-radius:20px;padding:11px 15px;max-height:120px;outline:none}
+.compose textarea:focus{border-color:var(--accent)}
+.send{width:46px;height:46px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none}
+.send.ghost{background:var(--raised);color:var(--text)}
+.send.rec{background:var(--bad);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px var(--bad-soft)}}
+.send:disabled{opacity:.45}
+.send svg{width:20px;height:20px}
+.chip{font:600 12px/1 var(--mono);padding:8px 12px;border-radius:var(--r-pill);background:var(--raised);color:var(--muted)}
+.chip.on{color:var(--accent);background:var(--accent-soft)}
+.shot{width:100%;border-radius:var(--r-ctl);display:block;background:#000;min-height:120px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.btn{padding:11px 16px;border-radius:var(--r-ctl);background:var(--raised);font-weight:700}
+.btn:active{background:var(--raised-hover)}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn:disabled{opacity:.5}
+.btn.wide{width:100%}
+.switch{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.switch input{accent-color:var(--accent);width:18px;height:18px}
+.center{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:24px 8px}
+.center h2{margin:0;font:700 24px/1.2 var(--mono)}
+.field{width:100%;background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r-ctl);padding:12px 14px;outline:none}
+.field:focus{border-color:var(--accent)}
+.check{font:700 40px/1.2 var(--mono);letter-spacing:.25em;text-align:center;color:var(--accent);margin:4px 0}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--raised);border:1px solid var(--line-strong);color:var(--text);padding:10px 16px;border-radius:var(--r-ctl);font-size:14px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;text-align:center;z-index:30;box-shadow:0 8px 24px #0008}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.banner{background:var(--bad-soft);color:var(--bad);border:1px solid rgba(242,132,111,.3);border-radius:var(--r-ctl);padding:11px 13px;font-size:13.5px;margin-bottom:12px}
+.files{display:flex;flex-direction:column}
+.file{display:flex;align-items:center;gap:12px;padding:10px 2px;border-top:1px solid var(--line);text-align:left;width:100%}
+.file:first-child{border-top:0}
+.file .ic{width:38px;height:38px;border-radius:12px;background:var(--raised);display:grid;place-items:center;flex:none;color:var(--accent)}
+.file .ic svg{width:19px;height:19px}
+.file .nm{flex:1;min-width:0}
+.file .nm b{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file .nm span{font-size:12.5px;color:var(--muted)}
+.crumbs{display:flex;gap:4px;align-items:center;flex-wrap:wrap;font-size:13.5px;color:var(--muted);margin-bottom:8px}
+.crumbs button{color:var(--accent);padding:2px 0}
+.bar{height:4px;border-radius:2px;background:var(--raised);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--accent);width:0}
+.xfer{padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.xfer:first-of-type{border-top:0}
+.xfer .s{color:var(--muted);font-size:12.5px}
+.xfer.bad .s{color:var(--bad)}
+.sheet{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet>div{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card) var(--r-card) 0 0;padding:18px 16px 22px;width:100%;max-width:640px;display:flex;flex-direction:column;gap:10px}
+.sheet .preview{background:var(--raised);border-radius:12px;padding:10px 12px;max-height:120px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:13.5px}
+.viewer{position:fixed;inset:0;background:#000;overflow:auto;z-index:25}
+.viewer img{display:block;width:200%;max-width:none}
+.setting{display:flex;align-items:center;gap:12px;padding:7px 0}
+.setting div{flex:1}
+.setting input{accent-color:var(--accent);width:20px;height:20px}
+/* the avatar */
+.stage{position:relative;height:40vh;min-height:220px;margin:-4px -14px 6px;overflow:hidden;background:radial-gradient(ellipse at 50% 88%,rgba(243,139,168,.16),transparent 62%)}
+.stage canvas{width:100%;height:100%;display:block;touch-action:none}
+.stage .say{position:absolute;inset:auto 14px 10px;text-align:center;color:var(--muted);font-size:13px}
+.stage .tools{position:absolute;top:8px;right:12px;display:flex;gap:6px}
+.stage .tools button{width:36px;height:36px;border-radius:12px;background:rgba(23,24,27,.75);border:1px solid var(--line);display:grid;place-items:center}
+.stage .tools button svg{width:18px;height:18px}
+.stage .tools button.on{color:var(--accent);border-color:rgba(243,139,168,.4)}
+/* now playing: cover and position */
+.np{display:flex;align-items:center;gap:12px}
+.np .nt{min-width:0;flex:1}
+.np .cover{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--raised);flex:none;display:grid;place-items:center;color:var(--faint)}
+.np .cover svg{width:24px;height:24px}
+.seek{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.seek input{flex:1;accent-color:var(--accent);height:24px}
+.seek span{font:600 12px var(--mono);color:var(--muted);width:46px;font-variant-numeric:tabular-nums}
+.seek span:last-child{text-align:right}
+.grid.two{grid-template-columns:1fr 1fr}
+.mixrow{padding:6px 0;border-top:1px solid var(--line)}
+.mixrow:first-child{border-top:0}
+.mixrow .mn{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mixrow .vol{margin-top:4px}
+#mix{max-height:55vh;overflow-y:auto}
+/* full-screen views: the touchpad and the launcher */
+.full{position:fixed;inset:0;z-index:22;background:var(--bg);display:flex;flex-direction:column;max-width:640px;margin:0 auto}
+.full .top{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.full .top h2{flex:1;margin:0;font:700 17px/1.2 var(--mono)}
+.pad{flex:1;margin:0 14px;border-radius:var(--r-card);background:var(--card);border:1px solid var(--line);touch-action:none;display:grid;place-items:center;text-align:center;color:var(--faint);font-size:13px;line-height:1.7;padding:20px;user-select:none;-webkit-user-select:none}
+.pad.active{border-color:rgba(243,139,168,.45);background:#24252a}
+.live{margin:0 14px 8px;position:relative;border-radius:14px;overflow:hidden;background:#000;flex:none}
+.live img{display:block;max-width:100%;max-height:48vh;margin:0 auto;min-height:60px;touch-action:manipulation}
+.live .zc{position:absolute;top:6px;left:6px;display:flex;gap:4px}
+.live .zc button{padding:7px 10px;border-radius:9px;background:rgba(23,24,27,.78);border:1px solid var(--line);font:700 12px/1 var(--mono);color:var(--muted)}
+.live .zc button.on{color:var(--accent);border-color:rgba(243,139,168,.45)}
+.live .wait{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font-size:13px}
+.full .top .icon-btn.on{background:var(--accent-soft);color:var(--accent)}
+.mbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 14px 0}
+.mbtns button{height:56px;border-radius:var(--r-ctl);background:var(--raised);font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none}
+.mbtns button.on{background:var(--accent-soft);color:var(--accent)}
+.keys{display:flex;gap:6px;overflow-x:auto;padding:8px 14px;scrollbar-width:none}
+.keys::-webkit-scrollbar{display:none}
+.keys button{flex:none;padding:9px 12px;border-radius:12px;background:var(--raised);font:600 13px/1 var(--mono)}
+.keys button:active{background:var(--accent-soft);color:var(--accent)}
+.typer{margin:0 14px 6px}
+.typer textarea{width:100%;resize:none;background:var(--card);border:1px solid var(--line-strong);border-radius:16px;padding:11px 14px;outline:none;height:46px}
+.typer textarea:focus{border-color:var(--accent)}
+.list{flex:1;overflow-y:auto;padding:0 14px 16px}
+.sec{font:700 12px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:14px 2px 8px}
+.app-row{display:flex;align-items:center;gap:6px;border-top:1px solid var(--line)}
+.sec+.app-row{border-top:0}
+.app-go{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:9px 2px;text-align:left}
+.app-go img,.app-go .ph{width:34px;height:34px;border-radius:9px;flex:none;object-fit:contain}
+.app-go .ph{background:var(--raised);display:grid;place-items:center;color:var(--accent)}
+.app-go .ph svg{width:18px;height:18px}
+.app-go b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.star{width:38px;height:38px;display:grid;place-items:center;color:var(--faint);flex:none}
+.star svg{width:19px;height:19px}
+.star.on{color:var(--accent)}
+.star.on svg{fill:currentColor}
+.games{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.game{position:relative;border-radius:14px;overflow:hidden;background:var(--raised)}
+.game-go{display:block;width:100%;aspect-ratio:460/215;padding:0}
+.game-go:active{opacity:.8}
+.game img{width:100%;height:100%;object-fit:cover;display:block}
+.game .star{position:absolute;top:2px;right:2px;width:32px;height:32px;border-radius:10px;background:rgba(23,24,27,.6)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="toast" id="toast"></div>
+<div id="layer"></div>
+<script src="avatar.js"></script>
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const svg = (d, fill) => `<svg viewBox="0 0 24 24" ${fill ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'}>${d}</svg>`;
+const ICON = {
+  remote: svg('<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>'),
+  chat: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>'),
+  files: svg('<path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>'),
+  screen: svg('<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>'),
+  more: svg('<path d="M12 3v9"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/>'),
+  prev: svg('<path d="M6 5h2v14H6zM20 5v14L9 12z"/>', 1),
+  next: svg('<path d="M16 5h2v14h-2zM4 5v14l11-7z"/>', 1),
+  play: svg('<path d="M7 4.5v15l13-7.5z"/>', 1),
+  pause: svg('<path d="M6 4.5h4v15H6zM14 4.5h4v15h-4z"/>', 1),
+  vol: svg('<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/>'),
+  mute: svg('<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>'),
+  send: svg('<path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z"/>', 1),
+  stop: svg('<rect x="6" y="6" width="12" height="12" rx="2"/>', 1),
+  lock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>'),
+  moon: svg('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+  monitor: svg('<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M5 6.5l14 8"/>'),
+  power: svg('<path d="M12 3v9"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/>'),
+  restart: svg('<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>'),
+  cancel: svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/>'),
+  folder: svg('<path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>'),
+  file: svg('<path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5"/>'),
+  down: svg('<path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/>'),
+  up: svg('<path d="M12 20V9M7 13.5l5-5 5 5M5 4h14"/>'),
+  clip: svg('<rect x="7" y="4" width="10" height="4" rx="1.5"/><path d="M7 6H5.5a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 18.5 6H17"/>'),
+  astra: svg('<path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15.2l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>'),
+  mic: svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>'),
+  sound: svg('<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/>'),
+  soundOff: svg('<path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>'),
+  person: svg('<circle cx="12" cy="7.5" r="3.5"/><path d="M5 20.5a7 7 0 0 1 14 0"/>'),
+  save: svg('<path d="M12 4v11M7 10.5l5 5 5-5"/><rect x="4" y="17" width="16" height="3.5" rx="1.2"/>'),
+  music: svg('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'),
+  mixer: svg('<path d="M6 4v16M12 4v16M18 4v16"/><path d="M4 14.5h4M10 8.5h4M16 12.5h4" stroke-width="3"/>'),
+  pad: svg('<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 15h18M12 15v5"/>'),
+  apps: svg('<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><path d="M17 13.5v7M13.5 17h7"/>'),
+  game: svg('<rect x="2.5" y="7" width="19" height="11" rx="5"/><path d="M7.5 10.5v4M5.5 12.5h4M15.5 11.5h.01M18 13.5h.01"/>'),
+  star: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>'),
+  close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  kbd: svg('<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M7 14h10"/>')
+};
+
+// ── storage and the bridge to the phone ─────────────────────────────────────
+// The page has no network of its own: window.AR (Bridge.java) makes every request, with the device key
+// that only Java sees, to the one PC whose certificate came in the QR code.
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("ar." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("ar." + k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem("ar." + k); } catch {} }
+};
+const status = () => { try { return JSON.parse(AR.status()); } catch { return {}; } };
+let me = status();
+
+let seq = 0;
+const waiting = new Map();
+window.__native = (id, code, text) => {
+  const f = waiting.get(id);
+  if (f) { waiting.delete(id); f({ status: code, text }); }
+};
+const native = (start) => new Promise((resolve) => { const id = String(++seq); waiting.set(id, resolve); start(id); });
+const errorOf = (text) => { try { return JSON.parse(text).error || ""; } catch { return ""; } };
+function check(r) {
+  if (r.status === 0) throw new Error(errorOf(r.text) || "ПК не отвечает");
+  if (r.status === 401) throw new Error("Телефон отключён на ПК");
+  if (r.status >= 400) throw new Error(errorOf(r.text) || "Ошибка " + r.status);
+  return r;
+}
+async function api(method, path, body) {
+  return check(await native((id) => AR.call(id, method, path, body ? JSON.stringify(body) : "")));
+}
+const getJson = (p) => api("GET", p).then((r) => JSON.parse(r.text));
+const post = (p, b) => api("POST", p, b || {}).then((r) => JSON.parse(r.text));
+
+function toast(text) {
+  const t = $("#toast");
+  t.textContent = text;
+  t.classList.add("show");
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.classList.remove("show"), 2600);
+}
+const buzz = () => { try { AR.vibrate(); } catch {} };
+
+// the PC forgot this phone (unpaired there, or the key ran out)
+window.__forgotten = () => {
+  me = status();
+  state = null;
+  stopPolling();
+  store.del("chat");
+  render();
+};
+
+// Android's back button: close what is open, else go to the first tab, else leave the app
+window.__back = () => {
+  if ($("#layer").innerHTML) { liveStop(); $("#layer").innerHTML = ""; return true; }
+  if (me.paired && filePath && tab === "files") { openDir(filePath.split("/").slice(0, -1).join("/")); return true; }
+  if (me.paired && tab !== "remote") { tab = "remote"; store.set("tab", tab); render(); return true; }
+  return false;
+};
+
+// ── state ───────────────────────────────────────────────────────────────────
+let tab = store.get("tab", "remote");
+let state = null;
+let online = null;
+let pollTimer = null;
+let volDragging = false;
+
+async function refresh() {
+  me = status(); // the PC may have told Java about new addresses (e.g. Tailscale)
+  try {
+    state = await getJson("/api/state");
+    online = true;
+  } catch (e) {
+    online = false;
+  }
+  if (!me.paired) return;
+  paintStatus();
+  paintBadge();
+  if (tab === "remote") paintRemote();
+}
+function startPolling() {
+  stopPolling();
+  refresh();
+  pollTimer = setInterval(() => { if (!document.hidden) refresh(); }, 4000);
+}
+function stopPolling() { clearInterval(pollTimer); pollTimer = null; }
+document.addEventListener("visibilitychange", () => { if (!document.hidden && me.paired) refresh(); });
+
+// ── layout ──────────────────────────────────────────────────────────────────
+const TABS = [["remote", "Пульт"], ["chat", "Astra"], ["files", "Файлы"], ["screen", "Экран"], ["more", "Ещё"]];
+function render() {
+  const app = $("#app");
+  if (!me.paired) return renderPair(app);
+  if (!TABS.some(([id]) => id === tab)) tab = "remote";
+  app.innerHTML = `
+    <header><span class="dot" id="dot"></span><h1 id="host">${esc(me.pc || "Phone Remote")}</h1></header>
+    <main id="main"></main>
+    <nav>${TABS.map(([id, label]) => `<button data-tab="${id}" class="${tab === id ? "on" : ""}">${ICON[id === "chat" ? "astra" : id]}<span>${label}</span></button>`).join("")}</nav>`;
+  app.querySelectorAll("nav button").forEach((b) => b.onclick = () => { tab = b.dataset.tab; store.set("tab", tab); render(); });
+  const main = $("#main");
+  if (tab !== "chat") dropAvatar(); // the avatar draws only while her tab is open
+  ({ remote: renderRemote, chat: renderChat, files: renderFiles, screen: renderScreen, more: renderMore })[tab](main);
+  paintStatus();
+  paintBadge();
+  if (!pollTimer) startPolling();
+}
+
+function paintStatus() {
+  const dot = $("#dot");
+  if (!dot) return;
+  dot.className = "dot " + (online === true ? "on" : online === false ? "off" : "");
+  $("#host").textContent = state?.system?.host || me.pc || "Phone Remote";
+}
+
+// files Astra sent to the phone that have not been looked at yet
+function unseenSent() {
+  const seen = store.get("seenSent", "");
+  return (state?.sent || []).filter((s) => s.at > seen);
+}
+function paintBadge() {
+  const b = $('nav [data-tab="files"]');
+  if (!b) return;
+  const n = tab === "files" ? 0 : unseenSent().length;
+  let el = $(".badge", b);
+  if (!n) { el?.remove(); return; }
+  if (!el) { el = document.createElement("span"); el.className = "badge"; b.appendChild(el); }
+  el.textContent = n;
+}
+
+// ── pairing ─────────────────────────────────────────────────────────────────
+function renderPair(app) {
+  stopPolling();
+  app.innerHTML = `<main><div class="center">
+    <h2>Подключить к ПК</h2>
+    <p class="hint" style="margin:0">1. На компьютере: Astra → <b>Phone Remote</b> → «Подключить телефон».<br>2. Здесь нажми «Сканировать QR-код» и наведи камеру на код.<br>3. На ПК появится запрос — нажми «Разрешить», если код совпадает.</p>
+    <input class="field" id="name" maxlength="40" placeholder="Имя этого телефона" value="${esc(store.get("name", me.device || ""))}">
+    <div id="pairBox"><button class="btn primary wide" id="scan">Сканировать QR-код</button></div>
+    <p class="hint" id="pairMsg" style="margin:0"></p>
+  </div></main>`;
+  $("#scan").onclick = startScan;
+}
+function startScan() {
+  const name = $("#name").value.trim();
+  store.set("name", name);
+  $("#pairMsg").textContent = "";
+  AR.scan(name);
+}
+window.__pair = (e) => {
+  if (me.paired && e.state !== "ok") return;
+  const box = $("#pairBox"), msg = $("#pairMsg");
+  if (!box) return;
+  const scanBtn = '<button class="btn primary wide" id="scan">Сканировать QR-код</button>';
+  if (e.state === "connecting") {
+    box.innerHTML = `<p class="hint" style="text-align:center">Подключаюсь к «${esc(e.message)}»…</p>`;
+  } else if (e.state === "wait") {
+    box.innerHTML = `<div class="card" style="text-align:center">
+      <p style="margin:0">На ПК появился запрос от этого телефона. Если там тот же код — нажми <b>«Разрешить»</b>.</p>
+      <div class="check">${esc(e.check)}</div>
+      <button class="btn" id="cancelPair">Отмена</button></div>`;
+    $("#cancelPair").onclick = () => { AR.cancelPairing(); box.innerHTML = scanBtn; $("#scan").onclick = startScan; };
+  } else if (e.state === "ok") {
+    me = status();
+    toast("Подключено к «" + (me.pc || "ПК") + "»");
+    tab = "remote";
+    render();
+    return;
+  } else {
+    box.innerHTML = scanBtn;
+    $("#scan").onclick = startScan;
+    msg.textContent = e.state === "error" ? e.message : "";
+    if (e.state === "error") msg.style.color = "var(--bad)";
+  }
+};
+
+// ── remote ──────────────────────────────────────────────────────────────────
+function renderRemote(main) {
+  main.innerHTML = `
+    <div id="banner"></div>
+    <div class="card"><div class="stats" id="stats"></div></div>
+    <div class="card">
+      <div class="np" id="np"></div>
+      <div class="seek" id="seek" hidden><span id="posT">0:00</span><input type="range" min="0" max="100" step="1" id="pos"><span id="durT">0:00</span></div>
+      <div class="transport">
+        <button class="round" data-key="prev" aria-label="Назад">${ICON.prev}</button>
+        <button class="round big" data-key="play_pause" id="pp" aria-label="Пауза">${ICON.play}</button>
+        <button class="round" data-key="next" aria-label="Дальше">${ICON.next}</button>
+      </div>
+      <div class="vol">
+        <button class="icon-btn" id="mute" aria-label="Звук">${ICON.vol}</button>
+        <input type="range" min="0" max="100" step="1" id="vol">
+        <span class="n" id="voln"></span>
+        <button class="icon-btn" id="mixer" aria-label="Громкость приложений">${ICON.mixer}</button>
+      </div>
+    </div>
+    <div class="card" id="tools"><div class="grid two">
+      <button class="tile" id="openPad">${ICON.pad}<span>Тачпад и клавиатура</span></button>
+      <button class="tile" id="openApps">${ICON.apps}<span>Программы и игры</span></button>
+    </div></div>
+    <div class="card"><h2>Кнопки</h2><div class="grid" id="buttons"></div></div>
+    <div class="card" id="recent" hidden></div>`;
+  main.querySelectorAll("[data-key]").forEach((b) => b.onclick = async () => {
+    buzz();
+    try { await post("/api/media", { key: b.dataset.key }); setTimeout(refresh, 700); } catch (e) { toast(e.message); }
+  });
+  const vol = $("#vol");
+  let sendTimer = null;
+  vol.oninput = () => {
+    volDragging = true;
+    $("#voln").textContent = vol.value;
+    clearTimeout(sendTimer);
+    sendTimer = setTimeout(() => post("/api/volume", { volume: Number(vol.value) }).catch((e) => toast(e.message)), 120);
+  };
+  vol.onchange = () => { setTimeout(() => { volDragging = false; }, 600); };
+  $("#mute").onclick = async () => {
+    buzz();
+    try {
+      const v = await post("/api/volume", { muted: !state?.volume?.muted });
+      if (state) state.volume = v;
+      paintRemote();
+    } catch (e) { toast(e.message); }
+  };
+  $("#mixer").onclick = openMixer;
+  $("#openPad").onclick = openPad;
+  $("#openApps").onclick = openApps;
+  const pos = $("#pos");
+  pos.oninput = () => { seekDragging = true; $("#posT").textContent = fmtTime(Number(pos.value)); };
+  pos.onchange = async () => {
+    const sec = Number(pos.value);
+    try {
+      await post("/api/media/seek", { sec });
+      if (mediaAt) Object.assign(mediaAt, { pos: sec, at: Date.now() });
+    } catch (e) { toast(e.message); }
+    seekDragging = false;
+    paintPos();
+    setTimeout(refresh, 900);
+  };
+  paintRemote();
+}
+
+function paintRemote() {
+  if (!$("#stats")) return;
+  const s = state;
+  $("#banner").innerHTML = online === false ? offlineBanner() : "";
+  if ($("#tsOpen")) $("#tsOpen").onclick = () => AR.openTailscale();
+  if (!s) return;
+  const sys = s.system || {};
+  const gpu = sys.gpu ? `<div class="stat"><b>${sys.gpu.load}%</b><span>видеокарта</span></div><div class="stat"><b>${sys.gpu.temp}°</b><span>её температура</span></div>` : "";
+  const disks = (sys.disks || []).slice(0, 3).map((d) => `<div class="stat"><b>${d.freeGb}<small style="font-size:11px"> ГБ</small></b><span>свободно на ${esc(d.name)}</span></div>`).join("");
+  $("#stats").innerHTML = `
+    <div class="stat"><b>${sys.cpu ?? "–"}%</b><span>процессор</span></div>
+    <div class="stat"><b>${sys.ramUsed ?? "–"}%</b><span>память</span></div>
+    <div class="stat"><b>${fmtUptime(sys.uptimeMin)}</b><span>работает</span></div>${gpu}${disks}`;
+  const sentBox = $("#recent");
+  const sent = (s.sent || []).slice(0, 3);
+  const sentSig = JSON.stringify(sent);
+  if (sentBox && sentBox.dataset.sig !== sentSig) {
+    sentBox.dataset.sig = sentSig;
+    sentBox.hidden = !sent.length;
+    sentBox.innerHTML = `<h2>Astra прислала</h2><div class="files">${sent.map((x, i) => fileRow({ name: x.name, size: x.size, mtime: x.at, dir: false }, "r" + i)).join("")}</div>`;
+    sentBox.querySelectorAll("[data-i]").forEach((b) => b.onclick = () => { const x = sent[Number(b.dataset.i.slice(1))]; fetchFile(x.path, x.name); });
+  }
+  const m = s.media;
+  paintMedia();
+  $("#pp").innerHTML = m?.playing ? ICON.pause : ICON.play;
+  $("#openPad").hidden = s.allow?.input === false;
+  $("#openApps").hidden = s.allow?.launch === false;
+  $("#tools").hidden = $("#openPad").hidden && $("#openApps").hidden;
+  if (s.volume) {
+    if (!volDragging) { $("#vol").value = s.volume.volume; $("#voln").textContent = s.volume.volume; }
+    const mute = $("#mute");
+    mute.classList.toggle("on", !!s.volume.muted);
+    mute.innerHTML = s.volume.muted ? ICON.mute : ICON.vol;
+  }
+  const btns = s.buttons || [];
+  const box = $("#buttons");
+  const sig = JSON.stringify(btns);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.innerHTML = btns.length
+    ? btns.map((b) => `<button class="tile" data-n="${b.n}">${b.icon ? `<span class="e">${esc(b.icon)}</span>` : ""}<span>${esc(b.label)}</span></button>`).join("")
+    : '<p class="hint" style="grid-column:1/-1;margin:0">Кнопок пока нет. В Astra открой Phone Remote → «Кнопки», подпиши кнопку и повесь на неё команду Astra.</p>';
+  box.querySelectorAll("[data-n]").forEach((b) => b.onclick = async () => {
+    buzz();
+    try { await post("/api/button", { n: Number(b.dataset.n) }); toast("Готово"); } catch (e) { toast(e.message); }
+  });
+}
+// ── now playing: the cover and where in the track ───────────────────────────
+let coverKey = null, coverData = null, seekDragging = false, mediaAt = null;
+const fmtTime = (sec) => {
+  const t = Math.max(0, Math.round(sec || 0)), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), x = t % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0");
+};
+function paintMedia() {
+  const np = $("#np");
+  if (!np) return;
+  const m = state?.media;
+  const key = m ? [m.title, m.artist, m.app].join("|") : "";
+  if (key !== coverKey) {
+    // a new track: its cover comes once, not with every poll
+    coverKey = key;
+    coverData = null;
+    if (m?.cover) getJson("/api/media/cover").then((r) => { if (coverKey === key) { coverData = r.cover; paintMedia(); } }).catch(() => {});
+  }
+  const sig = key + (coverData ? "+" : "");
+  if (np.dataset.sig !== sig) {
+    np.dataset.sig = sig;
+    np.innerHTML = m && (m.title || m.artist)
+      ? `${coverData ? `<img class="cover" src="data:image/jpeg;base64,${coverData}" alt="">` : `<div class="cover">${ICON.music}</div>`}
+         <div class="nt"><div class="t">${esc(m.title || "Без названия")}</div><div class="a">${esc(m.artist || appName(m.app))}</div></div>`
+      : '<div class="nt"><div class="t" style="color:var(--muted);font-weight:500">Ничего не играет</div><div class="a">Кнопки управляют любым плеером на ПК</div></div>';
+  }
+  const seek = $("#seek");
+  seek.hidden = !(m && m.dur > 0);
+  if (m && m.dur > 0 && !seekDragging) mediaAt = { pos: m.pos, dur: m.dur, playing: m.playing, at: Date.now() };
+  if (!m || !(m.dur > 0)) mediaAt = null;
+  $("#pos").disabled = !m?.seek;
+  paintPos();
+}
+// between polls the position runs on here
+function paintPos() {
+  const r = $("#pos");
+  if (!r || !mediaAt || seekDragging) return;
+  const at = Math.min(mediaAt.dur, mediaAt.pos + (mediaAt.playing ? (Date.now() - mediaAt.at) / 1000 : 0));
+  r.max = Math.max(1, Math.round(mediaAt.dur));
+  r.value = Math.round(at);
+  $("#posT").textContent = fmtTime(at);
+  $("#durT").textContent = fmtTime(mediaAt.dur);
+}
+setInterval(() => { if (tab === "remote" && !document.hidden) paintPos(); }, 1000);
+
+// ── each app's volume ───────────────────────────────────────────────────────
+async function openMixer() {
+  buzz();
+  $("#layer").innerHTML = `<div class="sheet" id="sheet"><div>
+    <b>Громкость приложений</b>
+    <div id="mix" class="hint">Загружаю…</div>
+    <button class="btn" data-close>Готово</button></div></div>`;
+  $("#sheet").onclick = (ev) => { if (ev.target.id === "sheet" || ev.target.hasAttribute("data-close")) $("#layer").innerHTML = ""; };
+  try {
+    paintMixer((await getJson("/api/volume/apps")).apps);
+  } catch (e) {
+    if ($("#mix")) $("#mix").textContent = e.message;
+  }
+}
+function paintMixer(list) {
+  const box = $("#mix");
+  if (!box) return;
+  box.className = "";
+  if (!list.length) { box.innerHTML = '<p class="hint" style="margin:0">Сейчас ни одно приложение не играет звук</p>'; return; }
+  box.innerHTML = list.map((a) => `<div class="mixrow" data-pid="${a.pid}">
+      <div class="mn">${esc(a.pid === 0 ? "Звуки Windows" : a.name)}</div>
+      <div class="vol"><button class="icon-btn ${a.muted ? "on" : ""}" data-mute aria-label="Звук">${a.muted ? ICON.mute : ICON.vol}</button>
+        <input type="range" min="0" max="100" step="1" value="${a.volume}"><span class="n">${a.volume}</span></div></div>`).join("");
+  box.querySelectorAll(".mixrow").forEach((row) => {
+    const pid = Number(row.dataset.pid);
+    const range = $("input", row);
+    let t = null;
+    range.oninput = () => {
+      $(".n", row).textContent = range.value;
+      clearTimeout(t);
+      t = setTimeout(() => post("/api/volume/app", { pid, volume: Number(range.value) }).catch((e) => toast(e.message)), 120);
+    };
+    $("[data-mute]", row).onclick = async () => {
+      buzz();
+      const a = list.find((x) => x.pid === pid);
+      try { paintMixer((await post("/api/volume/app", { pid, muted: !a.muted })).apps); } catch (e) { toast(e.message); }
+    };
+  });
+}
+
+// ── the touchpad and the keyboard ───────────────────────────────────────────
+// Events go out in small batches, one request at a time: moves made while a request is on its way
+// add up into the next one, so a slow line means a coarser pointer, never a queue of old moves.
+const pad = { q: [], busy: false, last: 0, failed: false, t: null };
+function padSend(ev) {
+  const last = pad.q[pad.q.length - 1];
+  if (last && last[0] === ev[0] && (ev[0] === "m" || ev[0] === "w")) { last[1] += ev[1]; last[2] += ev[2]; }
+  else if (last && last[0] === "t" && ev[0] === "t") last[1] += ev[1];
+  else pad.q.push(ev);
+  padFlush();
+}
+function padFlush() {
+  if (pad.busy || !pad.q.length) return;
+  const wait = 35 - (Date.now() - pad.last);
+  if (wait > 0) { clearTimeout(pad.t); pad.t = setTimeout(padFlush, wait); return; }
+  const events = pad.q.splice(0);
+  pad.busy = true;
+  pad.last = Date.now();
+  post("/api/input", { events })
+    .then(() => { pad.failed = false; })
+    .catch((e) => { if (!pad.failed) toast(e.message); pad.failed = true; })
+    .finally(() => { pad.busy = false; padFlush(); });
+}
+// [label, virtual key, modifiers: 1 Ctrl, 2 Shift, 4 Alt, 8 Win]
+const PAD_KEYS = [["Esc", 27], ["Tab", 9], ["Win", 91], ["←", 37], ["↑", 38], ["↓", 40], ["→", 39], ["Enter", 13], ["⌫", 8], ["Del", 46],
+  ["Пробел", 32], ["Ctrl+C", 67, 1], ["Ctrl+V", 86, 1], ["Ctrl+Z", 90, 1], ["Ctrl+A", 65, 1], ["Alt+Tab", 9, 4], ["Alt+F4", 115, 4],
+  ["Win+D", 68, 8], ["F5", 116], ["F11", 122], ["PgUp", 33], ["PgDn", 34], ["Home", 36], ["End", 35]];
+
+function openPad() {
+  buzz();
+  let speed = store.get("padSpeed", 1.6);
+  $("#layer").innerHTML = `<div class="full">
+    <div class="top"><button class="icon-btn" id="padClose" aria-label="Закрыть">${ICON.close}</button><h2>Тачпад</h2>
+      ${state?.allow?.screenshot === false ? "" : `<button class="icon-btn" id="padLive" aria-label="Экран ПК">${ICON.screen}</button>`}
+      <button class="icon-btn" id="padKbd" aria-label="Клавиатура">${ICON.kbd}</button></div>
+    <div class="live" id="live" hidden><img id="liveImg" alt=""><div class="wait" id="liveWait">Загружаю экран…</div>
+      <div class="zc"><button data-z="1">Весь</button><button data-z="2">×2</button><button data-z="3">×3</button><button data-z="0">В центр</button></div></div>
+    <div class="pad" id="pad"><div>Один палец — мышь, касание — клик<br>Два пальца — прокрутка<br>Касание двумя — правый клик<br>Держи «Левую» и веди пальцем — перетаскивание</div></div>
+    <div class="mbtns"><button id="lmb">Левая</button><button id="rmb">Правая</button></div>
+    <div class="keys">${PAD_KEYS.map((k, i) => `<button data-k="${i}">${esc(k[0])}</button>`).join("")}</div>
+    <div class="typer"><textarea id="typer" rows="1" placeholder="Печатай здесь — текст сразу идёт на ПК" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
+    <div class="vol" style="margin:0 14px 14px"><span class="hint" style="flex:none">Скорость</span><input type="range" id="padSpeed" min="0.6" max="3.6" step="0.1" value="${speed}"></div>
+  </div>`;
+  post("/api/input", { events: [] }).catch((e) => toast(e.message)); // starts the PC's side ahead of the first touch
+  let lmbDown = false;
+  const close = () => { if (lmbDown) padSend(["b", 0, 2]); liveStop(); $("#layer").innerHTML = ""; };
+  $("#padClose").onclick = close;
+  $("#padSpeed").oninput = (e) => { speed = Number(e.target.value); store.set("padSpeed", speed); };
+
+  const el = $("#pad");
+  const pts = new Map();
+  let g = null, fx = 0, fy = 0, sv = 0, sh = 0;
+  el.onpointerdown = (e) => {
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) g = { t: Date.now(), moved: 0, fingers: 1 };
+    else if (g) g.fingers = Math.max(g.fingers, pts.size);
+    el.classList.add("active");
+  };
+  el.onpointermove = (e) => {
+    const p = pts.get(e.pointerId);
+    if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX;
+    p.y = e.clientY;
+    if (g) g.moved += Math.abs(dx) + Math.abs(dy);
+    if (pts.size === 1) {
+      // faster strokes go further, as on a laptop touchpad
+      const k = speed * (1 + Math.min(2.5, Math.hypot(dx, dy) / 14));
+      fx += dx * k;
+      fy += dy * k;
+      const ix = Math.trunc(fx), iy = Math.trunc(fy);
+      if (ix || iy) { fx -= ix; fy -= iy; padSend(["m", ix, iy]); }
+    } else if (pts.size === 2) {
+      // each finger reports its own move: half of each is the pair's; the page follows the fingers
+      sv += dy * 2;
+      sh -= dx * 2;
+      const v = Math.trunc(sv), h = Math.trunc(sh);
+      if (Math.abs(v) >= 8 || Math.abs(h) >= 8) { sv -= v; sh -= h; padSend(["w", v, h]); }
+    }
+  };
+  const lift = (e, cancelled) => {
+    if (!pts.delete(e.pointerId) || pts.size) return;
+    if (g && !cancelled && Date.now() - g.t < 280 && g.moved < 14) { padSend(["b", g.fingers >= 2 ? 1 : 0, 0]); buzz(); }
+    g = null;
+    sv = sh = 0;
+    el.classList.remove("active");
+  };
+  el.onpointerup = (e) => lift(e, false);
+  el.onpointercancel = (e) => lift(e, true);
+
+  const lmb = $("#lmb");
+  const lmbUp = () => { if (!lmbDown) return; lmbDown = false; lmb.classList.remove("on"); padSend(["b", 0, 2]); };
+  lmb.onpointerdown = (e) => { try { lmb.setPointerCapture(e.pointerId); } catch {} lmbDown = true; lmb.classList.add("on"); buzz(); padSend(["b", 0, 1]); };
+  lmb.onpointerup = lmbUp;
+  lmb.onpointercancel = lmbUp;
+  $("#rmb").onclick = () => { buzz(); padSend(["b", 1, 0]); };
+  $("#layer").querySelectorAll("[data-k]").forEach((b) => b.onclick = () => {
+    const k = PAD_KEYS[Number(b.dataset.k)];
+    buzz();
+    padSend(["k", k[1], k[2] || 0]);
+  });
+
+  // The phone's keyboard types into this field; what changed in it goes to the PC as typed text and
+  // backspaces, so autocorrect and word suggestions land there too. A zero-width space keeps one
+  // character in the field, so a backspace on an "empty" field still arrives.
+  const ta = $("#typer");
+  const Z = "​";
+  ta.value = Z;
+  let prev = Z;
+  ta.oninput = () => {
+    const cur = ta.value;
+    let i = 0;
+    while (i < prev.length && i < cur.length && prev[i] === cur[i]) i++;
+    for (let n = prev.length - i; n > 0; n--) padSend(["k", 8, 0]);
+    const ins = cur.slice(i).replace(/​/g, "");
+    if (ins) padSend(["t", ins]);
+    prev = cur;
+    if (!cur.startsWith(Z) || cur.includes("\n") || cur.length > 80) { ta.value = Z; prev = Z; }
+  };
+  $("#padKbd").onclick = () => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); };
+  liveSetup();
+}
+
+// ── the live screen above the touchpad ──────────────────────────────────────
+// One frame at a time: the next is asked for when the last has come, so a slow line shows fewer
+// frames, never old ones. The PC draws a ring around the pointer (also while Windows hides it) and
+// follows it across monitors; ×2 and ×3 show the part of the screen around the pointer, larger.
+// A tap on the picture puts the pointer there and clicks.
+const live = { on: false, zoom: 1, run: 0, last: null };
+function liveStop() { live.run++; }
+function liveSetup() {
+  const btn = $("#padLive");
+  if (!btn) return;
+  live.on = store.get("padLive", true);
+  live.zoom = store.get("padZoom", 1);
+  const paintBtns = () => {
+    btn.classList.toggle("on", live.on);
+    $("#live").hidden = !live.on;
+    $("#live").querySelectorAll("[data-z]").forEach((b) => b.classList.toggle("on", Number(b.dataset.z) === live.zoom));
+  };
+  btn.onclick = () => {
+    buzz();
+    live.on = !live.on;
+    store.set("padLive", live.on);
+    paintBtns();
+    if (live.on) liveLoop(); else liveStop();
+  };
+  $("#live").querySelectorAll("[data-z]").forEach((b) => b.onclick = (e) => {
+    e.stopPropagation();
+    buzz();
+    const z = Number(b.dataset.z);
+    if (z === 0) { // the pointer to the middle of the monitor it is on
+      padSend(["p", live.last?.screen || 0, 5000, 5000]);
+      return;
+    }
+    live.zoom = z;
+    store.set("padZoom", z);
+    paintBtns();
+  });
+  const img = $("#liveImg");
+  img.onclick = (e) => {
+    const L = live.last;
+    if (!L) return;
+    const r = img.getBoundingClientRect();
+    const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+    buzz();
+    padSend(["p", L.screen, Math.round((L.rect[0] + fx * L.rect[2]) * 10000), Math.round((L.rect[1] + fy * L.rect[3]) * 10000)]);
+    padSend(["b", 0, 0]);
+  };
+  paintBtns();
+  if (live.on) liveLoop();
+}
+async function liveLoop() {
+  const run = ++live.run;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const width = Math.min(1280, Math.round(innerWidth * (devicePixelRatio || 1)));
+  let failed = false;
+  while (run === live.run && $("#liveImg")) {
+    const t0 = Date.now();
+    if (document.hidden) { await sleep(500); continue; }
+    try {
+      const f = await getJson(`/api/screen/live?w=${width}&zoom=${live.zoom}&q=60`);
+      if (run !== live.run || !$("#liveImg")) break;
+      live.last = f;
+      $("#liveImg").src = "data:image/jpeg;base64," + f.img;
+      $("#liveWait").hidden = true;
+      failed = false;
+    } catch (e) {
+      if (!failed) toast(e.message);
+      failed = true;
+      await sleep(1500);
+    }
+    await sleep(Math.max(40, 150 - (Date.now() - t0)));
+  }
+}
+
+// ── programs and games ──────────────────────────────────────────────────────
+// The list (with icons) is kept on the phone and refreshed each time the view opens.
+let appList = store.get("apps", null);
+function openApps() {
+  buzz();
+  $("#layer").innerHTML = `<div class="full">
+    <div class="top"><button class="icon-btn" id="appsClose" aria-label="Закрыть">${ICON.close}</button><h2>Программы и игры</h2>
+      <button class="icon-btn" id="appsReload" aria-label="Обновить">${ICON.restart}</button></div>
+    <div style="padding:0 14px 6px"><input class="field" id="appsQ" placeholder="Найти программу или игру" autocomplete="off"></div>
+    <div class="list" id="appsList"><p class="hint">Загружаю список с ПК…</p></div></div>`;
+  $("#appsClose").onclick = () => { $("#layer").innerHTML = ""; };
+  $("#appsReload").onclick = () => { buzz(); loadApps(true); };
+  $("#appsQ").oninput = paintApps;
+  paintApps();
+  loadApps(false);
+}
+async function loadApps(loud) {
+  try {
+    appList = (await getJson("/api/apps")).apps;
+    store.set("apps", appList);
+    paintApps();
+    if (loud) toast("Список обновлён");
+  } catch (e) {
+    if (!appList && $("#appsList")) $("#appsList").innerHTML = `<p class="hint">${esc(e.message)}</p>`;
+    else toast(e.message);
+  }
+}
+function paintApps() {
+  const box = $("#appsList");
+  if (!box || !appList) return;
+  const q = ($("#appsQ").value || "").trim().toLowerCase();
+  const fav = new Set(store.get("favApps", []));
+  const items = appList.filter((a) => !q || a.name.toLowerCase().includes(q));
+  const starBtn = (a) => `<button class="star ${fav.has(a.id) ? "on" : ""}" data-star="${a.id}" aria-label="В избранное">${ICON.star}</button>`;
+  const row = (a) => `<div class="app-row"><button class="app-go" data-id="${a.id}">${a.icon ? `<img src="data:image/png;base64,${a.icon}" alt="">`
+    : `<span class="ph">${a.kind === "game" ? ICON.game : ICON.apps}</span>`}<b>${esc(a.name)}</b></button>${starBtn(a)}</div>`;
+  const favs = items.filter((a) => fav.has(a.id));
+  const games = items.filter((a) => !fav.has(a.id) && a.art);
+  const rest = items.filter((a) => !fav.has(a.id) && !a.art);
+  box.innerHTML = (favs.length ? `<div class="sec">Избранное</div>${favs.map(row).join("")}` : "")
+    + (games.length ? `<div class="sec">Игры</div><div class="games">${games.map((a) => `<div class="game">
+        <button class="game-go" data-id="${a.id}" aria-label="${esc(a.name)}"><img src="data:image/jpeg;base64,${a.art}" alt=""></button>${starBtn(a)}</div>`).join("")}</div>` : "")
+    + (rest.length ? `<div class="sec">Программы</div>${rest.map(row).join("")}` : "")
+    + (items.length ? "" : '<p class="hint">Ничего не нашлось</p>');
+  box.querySelectorAll("[data-id]").forEach((b) => b.onclick = () => launchApp(b.dataset.id));
+  box.querySelectorAll("[data-star]").forEach((b) => b.onclick = () => {
+    const set = new Set(store.get("favApps", []));
+    const id = b.dataset.star;
+    if (set.has(id)) set.delete(id); else set.add(id);
+    store.set("favApps", [...set]);
+    paintApps();
+  });
+}
+async function launchApp(id) {
+  const a = (appList || []).find((x) => x.id === id);
+  buzz();
+  try {
+    await post("/api/apps/launch", { id });
+    toast("Запускаю " + (a?.name || ""));
+  } catch (e) { toast(e.message); }
+}
+
+// what to try when the PC does not answer; away from home that is almost always Tailscale
+function offlineBanner() {
+  const why = me.relay ? "Приложение пробует и домашнюю сеть, и ретранслятор — ждать ничего не нужно."
+    : me.tailscale ? (me.tailscaleApp ? "Не дома? Включи Tailscale на телефоне." : "Не дома? Поставь Tailscale на телефон и войди тем же аккаунтом, что на ПК.")
+    : "Вне дома нужен ретранслятор — подробнее во вкладке «Ещё».";
+  return `<div class="banner">ПК не отвечает. Он должен быть включён и не спать, а Astra — запущена.<br>${why}
+    ${!me.relay && me.tailscale ? `<br><button class="btn" id="tsOpen" style="margin-top:8px;padding:7px 12px">${me.tailscaleApp ? "Открыть Tailscale" : "Установить Tailscale"}</button>` : ""}</div>`;
+}
+
+const fmtUptime = (m) => m == null ? "–" : m < 60 ? m + " мин" : m < 1440 ? Math.floor(m / 60) + " ч" : Math.floor(m / 1440) + " д";
+const appName = (id) => String(id || "").replace(/\.exe$/i, "").split(/[!\\.]/).filter(Boolean).pop() || "";
+
+// ── chat ────────────────────────────────────────────────────────────────────
+let chatLog = store.get("chat", []);
+let streaming = null;
+const chats = new Map();
+window.__chat = (id, line) => {
+  const h = chats.get(id);
+  if (!h) return;
+  if (line === null) { chats.delete(id); h.end(); return; }
+  try { h.chunk(JSON.parse(line)); } catch {}
+};
+
+function renderChat(main) {
+  main.style.paddingBottom = "10px";
+  const showAvatar = store.get("avatar", true);
+  main.innerHTML = `<div class="chat">
+    ${showAvatar ? `<div class="stage" id="stage"><canvas id="avatar"></canvas>
+      <div class="tools"><button id="spk" class="${store.get("speak", false) ? "on" : ""}" aria-label="Читать вслух">${store.get("speak", false) ? ICON.sound : ICON.soundOff}</button></div>
+      <div class="say" id="say"></div></div>` : ""}
+    <div class="row" style="justify-content:space-between"><span class="hint">Разговор с Astra на ПК</span><button class="chip" id="new">Новый диалог</button></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="compose"><button class="send ghost" id="mic" aria-label="Сказать">${ICON.mic}</button><textarea id="text" rows="1" placeholder="Напиши Astra…"></textarea><button class="send" id="send" aria-label="Отправить">${streaming ? ICON.stop : ICON.send}</button></div>
+  </div>`;
+  $("#mic").onclick = () => { buzz(); AR.stopSpeaking(); voiceStop(); AR.listen(); };
+  if ($("#spk")) $("#spk").onclick = () => {
+    const on = !store.get("speak", false);
+    store.set("speak", on);
+    $("#spk").classList.toggle("on", on);
+    $("#spk").innerHTML = on ? ICON.sound : ICON.soundOff;
+    if (!on) { AR.stopSpeaking(); voiceStop(); }
+    toast(on ? "Ответы будут звучать вслух" : "Ответы без звука");
+  };
+  if (showAvatar) mountAvatar();
+  paintMsgs();
+  const ta = $("#text");
+  ta.value = store.get("draft", "");
+  ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.min(120, ta.scrollHeight) + "px"; store.set("draft", ta.value); };
+  $("#send").onclick = () => (streaming ? AR.stopChat() : sendChat());
+  $("#new").onclick = () => {
+    chatLog = [];
+    store.set("chat", chatLog);
+    store.set("fresh", true);
+    paintMsgs();
+    toast("Следующее сообщение начнёт новый диалог");
+  };
+}
+
+function paintMsgs() {
+  const box = $("#msgs");
+  if (!box) return;
+  const items = chatLog.map((m) => `<div class="msg ${m.role}">${esc(m.text)}</div>`);
+  if (streaming) items.push(`<div class="msg ai typing">${esc(streaming.text)}</div>`);
+  const off = state && !state.allow?.chat ? '<div class="msg err">Чат выключен в настройках плагина на ПК.</div>' : "";
+  box.innerHTML = off + (items.join("") || '<p class="hint" style="text-align:center;margin-top:40px">Спроси что-нибудь — ответ появится здесь по мере написания. Astra может и сделать что-то на ПК, например отправить тебе файл, если попросить.</p>');
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── the avatar ──────────────────────────────────────────────────────────────
+// The model the character wears in Astra, fetched once (the app keeps it until it is unpaired); the
+// pack's own motions play now and then, a reaction on a tap, and her mouth moves while she speaks.
+let av = null, avInfo = null, avIdle = null, speaking = false;
+const IDLE_CLIPS = ["mx_look_around", "mx_bored", "mx_stretch_neck", "mx_sigh", "mx_thinking", "mx_happy", "fm_smartphone"];
+const TAP_CLIPS = ["mx_wave", "mx_kiss", "mx_bashful", "mx_clap", "mx_happy", "mx_laugh", "vrma_peace"];
+const HAPPY_CLIPS = ["mx_happy", "mx_clap", "mx_laugh", "mx_excited"];
+const SAD_CLIPS = ["mx_sad", "mx_sigh"];
+
+const sayLine = (t) => { if ($("#say")) $("#say").textContent = t; };
+window.__avatarProgress = (done, total) => { if (total > 0) sayLine(`Загружаю модельку… ${Math.round(100 * done / total)}%`); };
+
+function dropAvatar() {
+  clearInterval(avIdle);
+  avIdle = null;
+  if (av) { av.dispose(); av = null; }
+}
+
+async function mountAvatar() {
+  dropAvatar();
+  const canvas = $("#avatar");
+  if (!canvas || !window.AvatarKit) return;
+  try {
+    av = AvatarKit.create(canvas, { onTap: () => { buzz(); playSome(TAP_CLIPS); } });
+  } catch (e) {
+    sayLine("Телефон не умеет рисовать 3D (WebGL)");
+    return;
+  }
+  const mine = av;
+  try {
+    sayLine("Узнаю, какая моделька на ПК…");
+    avInfo = await getJson("/api/avatar");
+    if (avInfo.none) { sayLine("У персонажа в Astra встроенная модель — её показать нельзя"); return; }
+    const url = await native((id) => AR.avatarFetch(id, "model", "", avInfo.model.sha)).then(check).then((r) => r.text);
+    if (av !== mine) return;
+    sayLine("Одеваюсь…");
+    await av.load(url);
+    if (av !== mine) return;
+    sayLine("");
+    if (streaming || speaking) av.setTalking(true);
+    playSome(["mx_wave", "vrma_greeting"]);
+    avIdle = setInterval(() => { if (av && !av.busy() && !streaming && !speaking && !document.hidden) playSome(IDLE_CLIPS); }, 22000);
+  } catch (e) {
+    if (av === mine) sayLine(e.message || "Не получилось загрузить модельку");
+  }
+}
+
+// one of these motions, if the pack has it (fetched once, then from the phone)
+async function playSome(names) {
+  const have = (avInfo?.clips || []).filter((c) => names.includes(c.name));
+  if (!av || !have.length) return;
+  const c = have[Math.floor(Math.random() * have.length)];
+  try {
+    const url = await native((id) => AR.avatarFetch(id, "clip", c.name, String(c.size))).then(check).then((r) => r.text);
+    av?.play(url);
+  } catch {}
+}
+
+// a rough mood of a reply, for her face and a motion
+function moodOf(text) {
+  if (/(извин|к сожалению|не могу|не получилось|ошибк|грустн)/i.test(text)) return "sad";
+  if (/(!|ура|отлично|супер|готово|рада|класс|😊|😄|🎉|❤)/i.test(text)) return "happy";
+  return null;
+}
+
+window.__speaking = (on) => { speaking = on; av?.setTalking(on || !!streaming); };
+window.__heard = (e) => {
+  if (e.error) { toast(e.error); return; }
+  if (e.text) { if (tab !== "chat") { tab = "chat"; store.set("tab", tab); render(); } sendChat(e.text); }
+};
+
+// ── Astra's own voice ───────────────────────────────────────────────────────
+// With the speaker on, the PC records Astra speaking the reply and sends it along as 24 kHz 16-bit mono
+// PCM; it is played here, piece after piece, and her mouth moves while it plays. When none comes (an
+// older plugin, an older Windows, or Astra did not speak), the phone's own voice reads the reply.
+const voice = { ctx: null, at: 0, sources: [], on: false, chat: "" }; // chat: the reply whose voice plays
+function voicePlay(b64, rate) {
+  if (!voice.ctx) voice.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = voice.ctx;
+  if (ctx.state === "suspended") ctx.resume();
+  const bin = atob(b64);
+  const n = bin.length >> 1;
+  if (!n) return;
+  const buf = ctx.createBuffer(1, n, rate || 24000);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) {
+    const v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8);
+    ch[i] = (v >= 32768 ? v - 65536 : v) / 32768;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  // a little ahead, so the next piece is there before this one ends
+  const at = Math.max(ctx.currentTime + 0.15, voice.at);
+  src.start(at);
+  voice.at = at + buf.duration;
+  voice.sources.push(src);
+  src.onended = () => { voice.sources = voice.sources.filter((x) => x !== src); };
+}
+function voiceStop() {
+  for (const x of voice.sources) { try { x.stop(); } catch {} }
+  voice.sources = [];
+  voice.at = 0;
+}
+setInterval(() => {
+  const on = !!voice.ctx && voice.ctx.currentTime < voice.at;
+  if (on !== voice.on) { voice.on = on; window.__speaking(on); }
+}, 100);
+
+async function sendChat(given) {
+  const ta = $("#text");
+  const text = (given ?? ta?.value ?? "").trim();
+  if (!text || streaming) return;
+  if (ta && given === undefined) { ta.value = ""; ta.style.height = "auto"; store.del("draft"); }
+  chatLog.push({ role: "me", text });
+  streaming = { text: "" };
+  AR.stopSpeaking();
+  voiceStop();
+  const aloud = store.get("speak", false);
+  // the AudioContext wants to be made while the user's tap is still on
+  if (aloud && !voice.ctx) { try { voice.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
+  av?.setTalking(!aloud); // spoken replies move her mouth themselves (__speaking)
+  if ($("#send")) $("#send").innerHTML = ICON.stop;
+  paintMsgs();
+  const fresh = store.get("fresh", false);
+  store.del("fresh");
+  let error = "", rate = 24000, voiceHeard = false;
+  const id0 = String(seq + 1); // this reply's id (set just below)
+  // the text is done at "done"; her voice may keep coming after it, until the stream ends
+  let textDone;
+  const textEnded = new Promise((r) => { textDone = r; });
+  const streamEnded = new Promise((end) => {
+    const id = String(++seq);
+    voice.chat = id;
+    chats.set(id, {
+      chunk: (c) => {
+        if (c.text && streaming) { streaming.text += c.text; paintMsgs(); }
+        if (c.error) error = c.error;
+        if (c.done) textDone();
+        if (c.voice === "start") rate = c.rate || rate;
+        if (c.audio && voice.chat === id && store.get("speak", false)) { voiceHeard = true; voicePlay(c.audio, rate); }
+        if (c.voiceEnd && c.heard) voiceHeard = true;
+      },
+      end: () => { textDone(); end(); }
+    });
+    try { AR.chat(id, text, !!fresh, !!aloud); } catch { AR.chat(id, text, !!fresh); }
+  });
+  await textEnded;
+  const reply = streaming.text;
+  if (!aloud || !reply) av?.setTalking(false);
+  // no voice from the PC: the phone reads the reply once the stream is over
+  if (aloud && reply) streamEnded.then(() => { if (!voiceHeard && voice.chat === id0 && store.get("speak", false)) AR.speak(reply); });
+  if (reply) {
+    const mood = moodOf(reply);
+    if (mood) { av?.setMood(mood, 5); playSome(mood === "happy" ? HAPPY_CLIPS : SAD_CLIPS); }
+  }
+  if (streaming.text) chatLog.push({ role: "ai", text: streaming.text });
+  else if (!error) chatLog.push({ role: "err", text: "Astra ничего не ответила" });
+  if (error) chatLog.push({ role: "err", text: error });
+  streaming = null;
+  chatLog = chatLog.slice(-60);
+  store.set("chat", chatLog);
+  if ($("#send")) $("#send").innerHTML = ICON.send;
+  paintMsgs();
+  refresh(); // Astra may have sent a file
+}
+
+// ── files ───────────────────────────────────────────────────────────────────
+let filePath = "";
+let listing = null;
+const transfers = []; // { key, kind: "up"|"down", name, done, total, state, info }
+
+const fmtSize = (n) => n == null || n < 0 ? "" : n < 1024 ? n + " Б" : n < 1048576 ? (n / 1024).toFixed(0) + " КБ" : n < 1073741824 ? (n / 1048576).toFixed(1) + " МБ" : (n / 1073741824).toFixed(2) + " ГБ";
+const fmtDate = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }); };
+
+window.__files = (e) => {
+  if (e.kind === "error") { toast(e.info); return; }
+  if (e.kind === "queued") { toast(e.total === 1 ? "Отправляю файл на ПК…" : `Отправляю ${e.total} файлов на ПК…`); return; }
+  const kind = e.kind.startsWith("up") ? "up" : "down";
+  let t = transfers.find((x) => x.kind === kind && x.name === e.name && x.state === "run");
+  if (!t) { t = { kind, name: e.name, state: "run" }; transfers.unshift(t); transfers.length = Math.min(transfers.length, 12); }
+  t.done = e.done; t.total = e.total;
+  if (e.kind === "upDone") { t.state = "ok"; t.info = e.info; if (tab !== "files") toast("Файл на ПК: " + e.info); if (tab === "files") loadDir(); }
+  if (e.kind === "downDone") { t.state = "ok"; t.info = e.info; if (tab !== "files") toast("Сохранено в «Загрузки»: " + e.name); }
+  if (e.kind === "upError" || e.kind === "downError") { t.state = "bad"; t.info = e.info; if (tab !== "files") toast(e.info); }
+  paintTransfers();
+};
+
+function renderFiles(main) {
+  const allow = state?.allow || {};
+  if (state && allow.files === false) { main.innerHTML = '<div class="card hint">Обмен файлами выключен в настройках плагина на ПК.</div>'; return; }
+  const sent = state?.sent || [];
+  if (sent.length) store.set("seenSent", sent[0].at);
+  main.innerHTML = `
+    <div class="toolbar"><button class="btn primary" id="pick">${"Отправить на ПК"}</button><button class="btn" id="reload">Обновить</button></div>
+    <div class="toolbar"><button class="btn" id="openPc">Открыть на ПК</button><button class="btn" id="openPhone">Папка на телефоне</button></div>
+    <div class="card" id="xferCard" hidden><h2>Передача</h2><div id="xfers"></div></div>
+    ${sent.length ? `<div class="card"><h2>Astra прислала</h2><div class="files" id="sent"></div></div>` : ""}
+    <div class="card"><h2>Общая папка на ПК</h2><div class="crumbs" id="crumbs"></div><div class="files" id="list"><p class="hint">Загружаю…</p></div></div>
+    <p class="hint">Всё, что отправляешь с телефона, попадает в папку «С телефона». Astra видит эту папку и может сама положить сюда файл для тебя — просто попроси её в чате. Отправить на ПК можно и из любого приложения: «Поделиться» → Phone Remote.</p>`;
+  $("#pick").onclick = () => AR.pickFiles();
+  $("#reload").onclick = () => { refresh(); loadDir(); };
+  $("#openPc").onclick = async () => { buzz(); try { await post("/api/files/open", { path: filePath }); toast("Папка открыта на ПК"); } catch (e) { toast(e.message); } };
+  $("#openPhone").onclick = () => AR.openPhoneFolder();
+  if (sent.length) {
+    $("#sent").innerHTML = sent.slice(0, 8).map((s, i) => fileRow({ name: s.name, size: s.size, mtime: s.at, dir: false }, "s" + i)).join("");
+    $("#sent").querySelectorAll("[data-i]").forEach((b) => b.onclick = () => fetchFile(sent[Number(b.dataset.i.slice(1))].path, sent[Number(b.dataset.i.slice(1))].name));
+  }
+  paintTransfers();
+  if (listing && listing.path === filePath) paintDir(); else loadDir();
+}
+
+const fileRow = (f, i) => `<button class="file" data-i="${i}"><span class="ic">${f.dir ? ICON.folder : ICON.file}</span>
+  <span class="nm"><b>${esc(f.name)}</b><span>${f.dir ? "папка" : [fmtSize(f.size), fmtDate(f.mtime)].filter(Boolean).join(" · ")}</span></span>
+  ${f.dir ? "" : `<span class="ic" style="background:none;color:var(--accent)">${ICON.down}</span>`}</button>`;
+
+async function loadDir() {
+  try {
+    listing = await getJson("/api/files?path=" + encodeURIComponent(filePath));
+    filePath = listing.path;
+  } catch (e) {
+    listing = { path: filePath, items: [], error: e.message };
+  }
+  if (tab === "files") paintDir();
+}
+function openDir(p) { filePath = p; listing = null; loadDir(); }
+
+function paintDir() {
+  const list = $("#list");
+  if (!list || !listing) return;
+  const parts = filePath ? filePath.split("/") : [];
+  $("#crumbs").innerHTML = `<button data-p="">${esc(listing.root || "Phone Remote")}</button>` +
+    parts.map((p, i) => ` / <button data-p="${esc(parts.slice(0, i + 1).join("/"))}">${esc(p)}</button>`).join("");
+  $("#crumbs").querySelectorAll("button").forEach((b) => b.onclick = () => openDir(b.dataset.p));
+  if (listing.error) { list.innerHTML = `<p class="hint" style="color:var(--bad)">${esc(listing.error)}</p>`; return; }
+  const items = listing.items || [];
+  list.innerHTML = items.length ? items.map((f, i) => fileRow(f, i)).join("") : '<p class="hint">Здесь пусто.</p>';
+  list.querySelectorAll("[data-i]").forEach((b) => b.onclick = () => {
+    const f = items[Number(b.dataset.i)];
+    const p = (filePath ? filePath + "/" : "") + f.name;
+    if (f.dir) openDir(p); else fetchFile(p, f.name, f.size);
+  });
+}
+
+function fetchFile(p, name, size) {
+  if (size > 200 * 1048576 && !confirm(`«${name}» весит ${fmtSize(size)}. Скачать на телефон?`)) return;
+  buzz();
+  AR.download(p, name);
+}
+
+function paintTransfers() {
+  const card = $("#xferCard");
+  if (!card) return;
+  card.hidden = !transfers.length;
+  $("#xfers").innerHTML = transfers.map((t, i) => {
+    const pct = t.total > 0 ? Math.min(100, Math.round(100 * t.done / t.total)) : t.state === "run" ? 10 : 100;
+    const what = t.kind === "up" ? "на ПК" : "на телефон";
+    const line = t.state === "run" ? `${what} · ${fmtSize(t.done)}${t.total > 0 ? " из " + fmtSize(t.total) : ""}`
+      : t.state === "ok" ? (t.kind === "up" ? "на ПК: " + esc(t.info) : "в «Загрузках» · нажми, чтобы открыть") : esc(t.info);
+    return `<div class="xfer ${t.state === "bad" ? "bad" : ""}" data-t="${i}"><div class="row"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.kind === "up" ? "↑" : "↓"} ${esc(t.name)}</span></div>
+      <div class="s">${line}</div>${t.state === "run" ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ""}</div>`;
+  }).join("");
+  $("#xfers").querySelectorAll("[data-t]").forEach((el) => el.onclick = () => {
+    const t = transfers[Number(el.dataset.t)];
+    if (t.kind === "down" && t.state === "ok" && t.info) AR.openDownloaded(t.info);
+  });
+}
+
+// ── screen ──────────────────────────────────────────────────────────────────
+let shotUrl = null;
+let autoShot = null;
+let screenIndex = 0;
+
+function renderScreen(main) {
+  if (state && !state.allow?.screenshot) {
+    main.innerHTML = '<div class="card hint">Снимок экрана выключен в настройках плагина на ПК.</div>';
+    return;
+  }
+  const n = state?.screens || 1;
+  main.innerHTML = `
+    <div class="toolbar">
+      <button class="btn primary" id="snap">Обновить</button>
+      <button class="icon-btn" id="saveShot" aria-label="В галерею">${ICON.save}</button>
+      <label class="switch"><input type="checkbox" id="auto"> каждые 3 с</label>
+      ${n > 1 ? `<span style="flex:1"></span>${Array.from({ length: n }, (_, i) => `<button class="chip ${i === screenIndex ? "on" : ""}" data-s="${i}">${i + 1}</button>`).join("")}` : ""}
+    </div>
+    <img class="shot" id="shot" alt="">
+    <p class="hint">Нажми на снимок, чтобы рассмотреть в полном размере.</p>`;
+  $("#snap").onclick = snap;
+  $("#saveShot").onclick = () => { if (shotUrl) { buzz(); AR.saveImage(shotUrl.split(",")[1]); } else toast("Сначала обнови снимок"); };
+  $("#auto").checked = !!autoShot;
+  $("#auto").onchange = (e) => {
+    clearInterval(autoShot);
+    autoShot = e.target.checked ? setInterval(() => { if (!document.hidden && $("#shot")) snap(); else if (!$("#shot")) { clearInterval(autoShot); autoShot = null; } }, 3000) : null;
+  };
+  main.querySelectorAll("[data-s]").forEach((b) => b.onclick = () => { screenIndex = Number(b.dataset.s); renderScreen(main); snap(); });
+  $("#shot").onclick = () => {
+    if (!shotUrl) return;
+    $("#layer").innerHTML = `<div class="viewer" id="viewer"><img src="${shotUrl}" alt=""></div>`;
+    $("#viewer").onclick = () => { $("#layer").innerHTML = ""; };
+  };
+  if (shotUrl) $("#shot").src = shotUrl; else snap();
+}
+
+async function snap() {
+  if (!$("#shot") || snap.busy) return;
+  snap.busy = true;
+  try {
+    const w = Math.min(2400, Math.round(screen.width * (devicePixelRatio || 1) * 1.5));
+    const r = check(await native((id) => AR.screenshot(id, screenIndex, w)));
+    shotUrl = "data:image/jpeg;base64," + r.text;
+    if ($("#shot")) $("#shot").src = shotUrl;
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    snap.busy = false;
+  }
+}
+
+// ── more: power, clipboard, settings ────────────────────────────────────────
+function renderMore(main) {
+  const allow = state?.allow || {};
+  const items = [
+    ["lock", "Заблокировать", ICON.lock, ""],
+    ["monitor_off", "Выключить монитор", ICON.monitor, ""],
+    ["sleep", "Сон", ICON.moon, "Перевести ПК в сон? Разбудить его с телефона не получится."],
+    ...(allow.shutdown ? [
+      ["shutdown", "Выключить", ICON.power, "Выключить ПК через минуту?", "danger"],
+      ["restart", "Перезагрузить", ICON.restart, "Перезагрузить ПК через минуту?", "danger"],
+      ["cancel", "Отменить выключение", ICON.cancel, ""]
+    ] : [])
+  ];
+  const power = allow.power === false
+    ? '<div class="card hint">Питание выключено в настройках плагина на ПК.</div>'
+    : `<div class="card"><h2>Питание</h2><div class="grid">${items.map(([id, label, icon, , cls]) =>
+        `<button class="tile ${cls || ""}" data-p="${id}">${icon}<span>${label}</span></button>`).join("")}</div>
+       ${allow.shutdown ? (allow.confirm ? '<p class="hint" style="margin:12px 0 0">Выключение и перезагрузку нужно подтвердить на ПК.</p>' : "")
+         : '<p class="hint" style="margin:12px 0 0">Выключение и перезагрузку можно разрешить в настройках плагина на ПК.</p>'}</div>`;
+  const clip = allow.clipboard === false ? "" : `<div class="card"><h2>Буфер обмена</h2><div class="grid" style="grid-template-columns:1fr 1fr">
+      <button class="tile" id="clipUp">${ICON.up}<span>С телефона на ПК</span></button>
+      <button class="tile" id="clipDown">${ICON.down}<span>С ПК на телефон</span></button></div>
+      <p class="hint" style="margin:10px 0 0">Только текст. Ссылку из другого приложения можно открыть на ПК: «Поделиться» → Phone Remote.</p></div>`;
+  const lockRow = me.lockAvailable
+    ? `<label class="setting"><div>Блокировать приложение<br><span class="hint">Через минуту в фоне — отпечаток, лицо или PIN телефона</span></div><input type="checkbox" id="lockSet" ${me.lock ? "checked" : ""}></label>`
+    : '<p class="hint" style="margin:0 0 8px">Чтобы приложение блокировалось в фоне, поставь на телефон PIN, графический ключ или отпечаток.</p>';
+  const key = state?.device?.expires ? `<p class="hint" style="margin:8px 0">Ключ этого телефона действует до ${new Date(state.device.expires).toLocaleDateString("ru-RU")}. Потом нужно будет подключиться заново по QR-коду.</p>` : "";
+  const remote = `<div class="card"><h2>Вне дома</h2>${me.relay
+      ? '<p class="hint" style="margin:0">Работает откуда угодно: дома — напрямую, вне дома — через ретранслятор ПК. Ретранслятор только передаёт данные, внутри та же защищённая связь с ПК. ПК должен быть включён и не спать (в настройках плагина: «Не уходить в сон, пока подключён телефон»).</p>'
+      : `<p class="hint" style="margin:0 0 10px">Сейчас приложение работает только в одной сети с ПК. Чтобы пользоваться им откуда угодно, впиши ретранслятор в настройках плагина на ПК (поле «Ретранслятор») и открой приложение дома один раз — оно само узнает адрес. Или поставь Tailscale на ПК и телефон.</p>
+         <button class="btn" id="tsMore">${me.tailscaleApp ? "Открыть Tailscale" : "Установить Tailscale"}</button>`}</div>`;
+  const astraCard = `<div class="card"><h2>Astra на телефоне</h2>
+      <label class="setting"><div>Моделька на вкладке Astra<br><span class="hint">Та, которую носит персонаж в Astra. Скачивается один раз, хранится только в приложении и стирается при отключении телефона</span></div><input type="checkbox" id="avSet" ${store.get("avatar", true) ? "checked" : ""}></label>
+      <label class="setting"><div>Читать ответы вслух<br><span class="hint">Голосом телефона; моделька при этом говорит</span></div><input type="checkbox" id="spSet" ${store.get("speak", false) ? "checked" : ""}></label>
+      <label class="setting"><div>Уведомления от Astra<br><span class="hint">Попроси Astra «напомни мне на телефон…». Пока приложение открыто — сразу, иначе примерно раз в 15 минут</span></div><input type="checkbox" id="ntSet" ${AR.notesEnabled() ? "checked" : ""}></label>
+      <label class="setting"><div>Разрешить скриншоты приложения<br><span class="hint">Иначе Android закрывает экран приложения от скриншотов и записи экрана — чтобы снимки ПК не утекали</span></div><input type="checkbox" id="shSet" ${AR.screenshotsAllowed() ? "checked" : ""}></label>
+      <p class="hint" style="margin:6px 0 0">На главный экран можно добавить виджет с первыми четырьмя кнопками, а в шторку — плитки «Пауза на ПК» и «Заблокировать ПК».</p></div>`;
+  main.innerHTML = power + clip + astraCard + remote + `<div class="card"><h2>Это устройство</h2>${lockRow}${key}
+    <button class="btn danger" id="unpair" style="margin-top:6px">Отключить этот телефон</button></div>`;
+
+  main.querySelectorAll("[data-p]").forEach((b) => b.onclick = async () => {
+    const it = items.find((x) => x[0] === b.dataset.p);
+    if (it[3] && !confirm(it[3])) return;
+    buzz();
+    const needsPc = allow.confirm && (it[0] === "shutdown" || it[0] === "restart");
+    if (needsPc) toast("Подтверди на ПК…");
+    try { await post("/api/power", { action: it[0] }); toast(it[0] === "cancel" ? "Выключение отменено" : "Готово"); } catch (e) { toast(e.message); }
+  });
+  if ($("#clipUp")) $("#clipUp").onclick = async () => {
+    const text = AR.readClipboard();
+    if (!text) { toast("Буфер телефона пуст"); return; }
+    buzz();
+    try { await post("/api/clipboard", { text }); toast("Скопировано на ПК"); } catch (e) { toast(e.message); }
+  };
+  if ($("#clipDown")) $("#clipDown").onclick = async () => {
+    buzz();
+    try {
+      const r = await getJson("/api/clipboard");
+      if (!r.text) { toast("В буфере ПК нет текста"); return; }
+      AR.writeClipboard(r.text);
+      toast("Скопировано на телефон");
+    } catch (e) { toast(e.message); }
+  };
+  if ($("#tsMore")) $("#tsMore").onclick = () => AR.openTailscale();
+  $("#avSet").onchange = (e) => store.set("avatar", e.target.checked);
+  $("#spSet").onchange = (e) => store.set("speak", e.target.checked);
+  $("#ntSet").onchange = (e) => AR.setNotes(e.target.checked);
+  $("#shSet").onchange = (e) => { AR.setScreenshotsAllowed(e.target.checked); toast(e.target.checked ? "Скриншоты приложения разрешены" : "Скриншоты приложения запрещены"); };
+  if ($("#lockSet")) $("#lockSet").onchange = (e) => { AR.setLock(e.target.checked); me.lock = e.target.checked; };
+  $("#unpair").onclick = () => {
+    if (!confirm("Отключить этот телефон? Подключать заново придётся по QR-коду.")) return;
+    AR.unpair();
+  };
+}
+
+// ── shared from other apps ──────────────────────────────────────────────────
+window.__shared = (e) => {
+  if (!me.paired) { toast("Сначала подключи телефон к ПК"); return; }
+  const text = String(e.text || "");
+  const url = (text.match(/https?:\/\/\S+/) || [])[0];
+  const allow = state?.allow || {};
+  $("#layer").innerHTML = `<div class="sheet" id="sheet"><div>
+    <b>Отправить на ПК</b>
+    <div class="preview">${esc(text.slice(0, 1000))}</div>
+    ${url && allow.open_url !== false ? '<button class="btn primary" data-a="open">Открыть ссылку на ПК</button>' : ""}
+    ${allow.clipboard !== false ? '<button class="btn" data-a="clip">В буфер обмена ПК</button>' : ""}
+    ${allow.chat !== false ? '<button class="btn" data-a="chat">Спросить Astra</button>' : ""}
+    <button class="btn" data-a="close">Отмена</button></div></div>`;
+  $("#sheet").onclick = (ev) => { if (ev.target.id === "sheet") $("#layer").innerHTML = ""; };
+  $("#layer").querySelectorAll("[data-a]").forEach((b) => b.onclick = async () => {
+    const a = b.dataset.a;
+    $("#layer").innerHTML = "";
+    try {
+      if (a === "open") { await post("/api/open", { url }); toast("Открыто на ПК"); }
+      if (a === "clip") { await post("/api/clipboard", { text }); toast("Скопировано на ПК"); }
+      if (a === "chat") { tab = "chat"; store.set("tab", tab); render(); sendChat(text); }
+    } catch (err) { toast(err.message); }
+  });
+};
+
+render();
+AR.ready();
+</script>
+</body>
+</html>
